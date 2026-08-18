@@ -1,10 +1,7 @@
 import cv2
 import mediapipe as mp
 
-#ts class will be used to track the hand and its position in the video screen (similarr to the drone)
 class HandTracker:
-
-    #ts class and function will be used to track the hand and its position in the video screen.
     def __init__(self, camera_index=0):
         self.cap = cv2.VideoCapture(camera_index)
         self.mp_hands = mp.solutions.hands
@@ -20,7 +17,6 @@ class HandTracker:
             return None, None, None
 
         frame = cv2.resize(frame, (width, height))
-        #this will flip the frame horizontally (got it from online resources )
         frame = cv2.flip(frame, 1)
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.hands.process(rgb_frame)
@@ -35,6 +31,5 @@ class HandTracker:
         return obj_x, obj_y, frame
 
     def release(self):
-        """This will release the camera and close the window when the game is closed"""
         self.cap.release()
         cv2.destroyAllWindows()

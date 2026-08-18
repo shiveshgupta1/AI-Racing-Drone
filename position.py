@@ -1,7 +1,6 @@
 import pygame
 from collections import deque
 
-#ts class will be used to track the position 
 class Position:
     def __init__(self, width, height):
         self.x = width // 2

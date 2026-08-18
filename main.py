@@ -3,12 +3,10 @@ import cv2
 import pygame
 import numpy as np
 
-#file imports
 from tracker import HandTracker
 from position import Position
 from pipe import PipeManager
 
-#ts will be used to manage the game and its components
 class Game:
     def __init__(self):
         pygame.init() 
@@ -24,9 +22,9 @@ class Game:
         self.player = Position(self.WIDTH, self.HEIGHT)
         self.pipes = PipeManager(width=self.WIDTH, height=self.HEIGHT)
         self.flash_timer = 0
+        self.touch_cooldown = 0
 
     def draw_hud(self, frame):
-
         cx, cy = self.WIDTH // 2, self.HEIGHT // 2
         grid_overlay = frame.copy()
         
@@ -47,6 +45,7 @@ class Game:
         high_txt = self.font_small.render(f"BEST:  {self.pipes.high_score:03d}", True, (255, 200, 0))
         self.screen.blit(score_txt, (25, 22))
         self.screen.blit(high_txt, (25, 55))
+
         if self.flash_timer > 0:
             flash_surf = pygame.Surface((self.WIDTH, self.HEIGHT), pygame.SRCALPHA)
             flash_surf.fill((255, 0, 0, min(120, self.flash_timer * 15)))
@@ -59,26 +58,29 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE or event.key == pygame.K_q:
+                        running = False
 
             obj_x, obj_y, frame = self.hand_tracker.get_hand_position(self.WIDTH, self.HEIGHT)
             if frame is None:
                 continue
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
             self.player.update(obj_x, obj_y)
             self.pipes.update()
 
-            if self.pipes.check_collisions(self.player.get_rect()):
+            if self.touch_cooldown > 0:
+                self.touch_cooldown -= 1
+
+            # Checks front-face/opening rect collision instead of center point
+            if self.pipes.check_front_face_collisions(self.player.get_rect()) and self.touch_cooldown == 0:
                 self.pipes.score = max(0, self.pipes.score - 1)
-                self.flash_timer = 8  
-                self.pipes.reset()
+                self.flash_timer = 4
+                self.touch_cooldown = 5
 
             self.draw_hud(frame)
             self.pipes.draw(frame)
 
- 
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_surface = pygame.surfarray.make_surface(np.rot90(frame_rgb))
             self.screen.blit(frame_surface, (0, 0))
@@ -87,7 +89,7 @@ class Game:
             self.draw_pygame_ui()
 
             pygame.display.flip()
-            self.clock.tick(30)
+            self.clock.tick(60)
 
         self.hand_tracker.release()
         pygame.quit()
